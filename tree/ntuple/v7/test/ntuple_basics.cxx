@@ -687,6 +687,7 @@ TEST(REntry, Basics)
 
    auto e = model->CreateEntry();
    EXPECT_EQ(e->GetModelId(), model->GetModelId());
+   EXPECT_EQ(e->GetSchemaId(), model->GetSchemaId());
    for (const auto &v : *e) {
       EXPECT_STREQ("pt", v.GetField().GetFieldName().c_str());
    }
@@ -694,6 +695,9 @@ TEST(REntry, Basics)
    EXPECT_THROW(e->GetToken(""), ROOT::Experimental::RException);
    EXPECT_THROW(e->GetToken("eta"), ROOT::Experimental::RException);
    EXPECT_THROW(model->GetToken("eta"), ROOT::Experimental::RException);
+
+   EXPECT_EQ("float", e->GetTypeName("pt"));
+   EXPECT_EQ("float", e->GetTypeName(model->GetToken("pt")));
 
    auto ptrPt = std::make_shared<float>();
    e->BindValue("pt", ptrPt);
@@ -726,7 +730,12 @@ TEST(REntry, Basics)
    EXPECT_EQ(&pt, e->GetPtr<void>("pt").get());
 
    e->EmplaceNewValue(model->GetToken("pt"));
-   EXPECT_NE(&pt, e->GetPtr<void>("pt").get());
+   ptrPt = e->GetPtr<float>("pt");
+   EXPECT_NE(&pt, ptrPt.get());
+
+   // Tokens are standalone and can be used after model destruction
+   model.reset();
+   EXPECT_EQ(ptrPt, e->GetPtr<float>("pt"));
 }
 
 TEST(RFieldBase, CreateObject)
