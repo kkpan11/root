@@ -2134,7 +2134,7 @@ Double_t TMath::Binomial(Int_t n,Int_t k)
 /// for _n_ smaller than 12 either method is acceptable ("Numerical Recipes")
 ///
 /// Note this function is not exactly implementing the cumulative or the complement of the cumulative of the
-/// Binomial distrinution. It is equivalent to ROOT::Math::binomial_cdf_c(k-1,p,n)
+/// Binomial distribution. It is equivalent to ROOT::Math::binomial_cdf_c(k-1,p,n)
 ///
 /// \author Anna Kreshuk
 
@@ -2593,11 +2593,10 @@ Bool_t TMath::Permute(Int_t n, Int_t *a)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Computes density function for Student's t- distribution
-/// (the probability function (integral of density) is computed in StudentI).
-///
-/// First parameter stands for x - the actual variable of the
-/// density function p(x) and the point at which the density is calculated.
-/// Second parameter stands for number of degrees of freedom.
+/// \f[ p_{n}(x) = \frac{\Gamma(\frac{n+1}{2})}{\sqrt{n \pi}\Gamma(\frac{n}{2})} \left( 1+\frac{x^2}{n}\right)^{-(n+1)/2}  \f]
+/// for \f$n \geq 0\f$, at point x for n (ndf) degrees of freedom. 
+/// This is equivalent to ROOT::Math::tdistribution_pdf(x,ndf)
+/// The probability function (integral of density) is computed in StudentI.
 ///
 /// About Student distribution:
 /// Student's t-distribution is used for many significance tests, for example,
