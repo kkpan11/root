@@ -79,6 +79,8 @@ private:
    std::vector<RFieldBase::RValue> fValues;
    /// For fast lookup of token IDs given a (sub)field name present in the entry
    std::unordered_map<std::string, std::size_t> fFieldName2Token;
+   /// To ensure that the entry is standalone, a copy of all field types
+   std::vector<std::string> fFieldTypes;
 
    // Creation of entries is done by the RNTupleModel class
 
@@ -88,6 +90,7 @@ private:
    void AddValue(RFieldBase::RValue &&value)
    {
       fFieldName2Token[value.GetField().GetQualifiedFieldName()] = fValues.size();
+      fFieldTypes.push_back(value.GetField().GetTypeName());
       fValues.emplace_back(std::move(value));
    }
 
@@ -96,6 +99,7 @@ private:
    std::shared_ptr<T> AddValue(RField<T> &field)
    {
       fFieldName2Token[field.GetQualifiedFieldName()] = fValues.size();
+      fFieldTypes.push_back(field.GetTypeName());
       auto value = field.CreateValue();
       fValues.emplace_back(value);
       return value.template GetPtr<T>();
@@ -134,14 +138,26 @@ private:
       }
    }
 
+   /// This function has linear complexity, only use for more helpful error messages!
+   const std::string &FindFieldName(RFieldToken token) const
+   {
+      for (const auto &[fieldName, index] : fFieldName2Token) {
+         if (index == token.fIndex) {
+            return fieldName;
+         }
+      }
+      // Should never happen, but avoid compiler warning about "returning reference to local temporary object".
+      static const std::string empty = "";
+      return empty;
+   }
+
    template <typename T>
    void EnsureMatchingType(RFieldToken token [[maybe_unused]]) const
    {
       if constexpr (!std::is_void_v<T>) {
-         const auto &v = fValues[token.fIndex];
-         if (v.GetField().GetTypeName() != RField<T>::TypeName()) {
-            throw RException(R__FAIL("type mismatch for field " + v.GetField().GetQualifiedFieldName() + ": " +
-                                     v.GetField().GetTypeName() + " vs. " + RField<T>::TypeName()));
+         if (fFieldTypes[token.fIndex] != RField<T>::TypeName()) {
+            throw RException(R__FAIL("type mismatch for field " + FindFieldName(token) + ": " +
+                                     fFieldTypes[token.fIndex] + " vs. " + RField<T>::TypeName()));
          }
       }
    }
@@ -214,6 +230,14 @@ public:
    {
       return GetPtr<T>(GetToken(fieldName));
    }
+
+   const std::string &GetTypeName(RFieldToken token) const
+   {
+      EnsureMatchingModel(token);
+      return fFieldTypes[token.fIndex];
+   }
+
+   const std::string &GetTypeName(std::string_view fieldName) const { return GetTypeName(GetToken(fieldName)); }
 
    std::uint64_t GetModelId() const { return fModelId; }
    std::uint64_t GetSchemaId() const { return fSchemaId; }
