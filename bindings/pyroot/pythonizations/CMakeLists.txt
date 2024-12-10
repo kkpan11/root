@@ -65,6 +65,11 @@ if(tmva)
     endif()
 endif()
 
+if(root7)
+    list(APPEND PYROOT_EXTRA_PYTHON_SOURCES
+        ROOT/_pythonization/_rntuple.py)
+endif()
+
 list(APPEND PYROOT_EXTRA_HEADERS
      inc/TPyDispatcher.h)
 
@@ -104,6 +109,7 @@ set(py_sources
   ROOT/_pythonization/_tformula.py
   ROOT/_pythonization/_tgraph.py
   ROOT/_pythonization/_th1.py
+  ROOT/_pythonization/_thistpainter.py
   ROOT/_pythonization/_titer.py
   ROOT/_pythonization/_tobject.py
   ROOT/_pythonization/_tobjstring.py
@@ -122,7 +128,6 @@ set(cpp_sources
     src/RPyROOTApplication.cxx
     src/GenericPyz.cxx
     src/TClassPyz.cxx
-    src/TMemoryRegulator.cxx
     src/TObjectPyz.cxx
     src/TTreePyz.cxx
     src/CPPInstancePyz.cxx
