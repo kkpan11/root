@@ -82,13 +82,9 @@ async function makePDF(svg, args) {
       };
    }
 
-
-   let doc;
-
    const orientation = (svg.width < svg.height) ? 'portrait' : 'landscape';
 
-   if (args?.as_doc)
-      doc = args?.doc;
+   let doc = args?.as_doc ? args.doc : null;
 
    if (doc) {
       doc.addPage({
@@ -143,7 +139,13 @@ async function makePDF(svg, args) {
          node.removeAttribute('dy');
       });
 
-      restore_text.forEach(node => { node.innerHTML = node.$originalHTML; node.setAttribute('font-family', node.$originalFont); });
+      restore_text.forEach(node => {
+         node.innerHTML = node.$originalHTML;
+         if (node.$originalFont)
+            node.setAttribute('font-family', node.$originalFont);
+         else
+            node.removeAttribute('font-family');
+      });
 
       const res = args?.as_buffer ? doc.output('arraybuffer') : doc.output('dataurlstring');
       if (nodejs) {
@@ -157,6 +159,5 @@ async function makePDF(svg, args) {
       return res;
    });
 }
-
 
 export { makePDF };

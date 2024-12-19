@@ -328,6 +328,7 @@ Bool_t TWebCanvas::IsJSSupportedClass(TObject *obj, Bool_t many_primitives)
                             {"TEllipse", true, true},  // can be handled via TWebPainter, disable for large number of primitives (like in greyscale.C)
                             {"TText"},
                             {"TLatex"},
+                            {"TLink"},
                             {"TAnnotation"},
                             {"TMathText"},
                             {"TMarker"},
@@ -368,7 +369,7 @@ Bool_t TWebCanvas::IsJSSupportedClass(TObject *obj, Bool_t many_primitives)
 /// If custom path was configured in RWebWindowsManager::AddServerLocation, it can be used in module paths.
 /// If started with "load:" prefix, code will be loaded with `loadScript` function of JSROOT (old, deprecated way)
 /// Script also can be a plain JavaScript code which imports JSROOT and provides draw function for custom classes
-/// See tutorials/webgui/custom/custom.mjs demonstrating such example
+/// See tutorials/visualisation/webgui/custom/custom.mjs demonstrating such example
 
 void TWebCanvas::SetCustomScripts(const std::string &src)
 {
@@ -529,6 +530,8 @@ void TWebCanvas::CreateObjectSnapshot(TPadWebSnapshot &master, TPad *pad, TObjec
    TVirtualPS *saveps = gVirtualPS;
 
    TWebPS ps;
+   ps.GetPainting()->SetClassName(obj->ClassName());
+   ps.GetPainting()->SetObjectName(obj->GetName());
    gVirtualPS = masterps ? masterps : &ps;
    if (painter)
       painter->SetPainting(ps.GetPainting());
@@ -674,7 +677,10 @@ void TWebCanvas::CreatePadSnapshot(TPadWebSnapshot &paddata, TPad *pad, Long64_t
    TObject *obj = nullptr;
    TFrame *frame = nullptr;
    TPaveText *title = nullptr;
-   bool need_frame = false, has_histo = false, has_polar = false, need_palette = false;
+   TGraphPolar *first_polar = nullptr;
+   TGraphPolargram *polargram = nullptr;
+   TString polargram_drawopt = "-";
+   bool need_frame = false, has_histo = false, need_palette = false;
    std::string need_title;
 
    auto checkNeedPalette = [](TH1* hist, const TString &opt) {
@@ -731,9 +737,18 @@ void TWebCanvas::CreatePadSnapshot(TPadWebSnapshot &paddata, TPad *pad, Long64_t
          if (checkNeedPalette(static_cast<TH1*>(obj), opt))
             need_palette = true;
       } else if (obj->InheritsFrom(TGraphPolar::Class())) {
-         if (!has_polar)
-            need_title = obj->GetTitle();
-         has_polar = true;
+         auto polar = static_cast<TGraphPolar *> (obj);
+         if (!first_polar) {
+            first_polar = polar;
+            need_title = first_polar->GetTitle();
+            polargram = first_polar->GetPolargram();
+            if (!polargram) {
+               polargram = first_polar->CreatePolargram(opt);
+               polargram_drawopt = opt.Contains("N") ? "N" : "";
+               if (opt.Contains("O")) polargram_drawopt.Append("O");
+            }
+         }
+         polar->SetPolargram(polargram);
       } else if (obj->InheritsFrom(TGraph::Class())) {
          if (opt.Contains("A")) {
             need_frame = true;
@@ -756,6 +771,17 @@ void TWebCanvas::CreatePadSnapshot(TPadWebSnapshot &paddata, TPad *pad, Long64_t
       } else if (obj->InheritsFrom(TPaveText::Class())) {
          if (strcmp(obj->GetName(), "title") == 0)
             title = static_cast<TPaveText *>(obj);
+      } else if (obj->InheritsFrom(TButton::Class())) {
+         auto btn = (TButton *) obj;
+         auto text = dynamic_cast<TText *> (btn->GetListOfPrimitives()->First());
+         if (text) {
+            text->SetTitle(btn->GetTitle());
+            text->SetTextSize(btn->GetTextSize());
+            text->SetTextFont(btn->GetTextFont());
+            text->SetTextAlign(btn->GetTextAlign());
+            text->SetTextColor(btn->GetTextColor());
+            text->SetTextAngle(btn->GetTextAngle());
+         }
       }
    }
 
@@ -765,7 +791,7 @@ void TWebCanvas::CreatePadSnapshot(TPadWebSnapshot &paddata, TPad *pad, Long64_t
 
       frame = pad->GetFrame();
       if(frame)
-         primitives->AddFirst(frame);
+         primitives->AddFirst(frame, "");
    }
 
    if (!need_title.empty() && gStyle->GetOptTitle()) {
@@ -784,9 +810,12 @@ void TWebCanvas::CreatePadSnapshot(TPadWebSnapshot &paddata, TPad *pad, Long64_t
             title->SetTextSize(gStyle->GetTitleFontSize());
          title->AddText(need_title.c_str());
          title->SetBit(kCanDelete);
-         primitives->Add(title);
+         primitives->Add(title, title->GetOption());
       }
    }
+
+   if (polargram && (polargram_drawopt != "-"))
+      primitives->Add(polargram, polargram_drawopt);
 
    auto flush_master = [&]() {
       if (!usemaster || masterps.IsEmptyPainting()) return;
@@ -970,22 +999,15 @@ void TWebCanvas::CreatePadSnapshot(TPadWebSnapshot &paddata, TPad *pad, Long64_t
       } else if (obj->InheritsFrom(TGraphPolar::Class())) {
          flush_master();
 
-         TGraphPolar *polar = static_cast<TGraphPolar *>(obj);
+         auto polar = static_cast<TGraphPolar *>(obj);
 
          check_graph_funcs(polar);
 
-         TString gropt = iter.GetOption();
-
-         if (!IsReadOnly() && (first_obj || (gropt.Index("A", 0, TString::kIgnoreCase) != kNPOS) || polar->GetOptionAxis()) && !polar->GetPolargram()) {
-            auto gram = new TGraphPolargram("Polargram",0, 10, 0, 2*TMath::Pi());
-            gram->SetBit(TGraphPolargram::kLabelOrtho, gropt.Index("O", 0, TString::kIgnoreCase) != kNPOS);
-            polar->SetPolargram(gram);
-            polar->SetOptionAxis(kFALSE);
-         }
-
-         paddata.NewPrimitive(obj, gropt.Data()).SetSnapshot(TWebSnapshot::kObject, obj);
+         paddata.NewPrimitive(obj, iter.GetOption()).SetSnapshot(TWebSnapshot::kObject, obj);
 
          first_obj = false;
+      } else if (obj->InheritsFrom(TGraphPolargram::Class())) {
+         // do nothing, object must be streamed with graphpolar
       } else if (obj->InheritsFrom(TGraph::Class())) {
          flush_master();
 
@@ -2037,7 +2059,9 @@ Bool_t TWebCanvas::ProcessData(unsigned connid, const std::string &arg)
             auto btn = (TButton *) pad;
             const char *mthd = btn->GetMethod();
             if (mthd && *mthd) {
-               TVirtualPad::TContext ctxt(gROOT->GetSelectedPad(), kTRUE, kTRUE);
+               auto cpad = gROOT->GetSelectedPad();
+               if (cpad)
+                  cpad->cd();
                gROOT->ProcessLine(mthd);
             }
             return kTRUE;

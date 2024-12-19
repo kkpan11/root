@@ -265,7 +265,8 @@ Int_t AnalysePS(const TString &filename)
       if (line.Contains("%%EndProlog")) counting = kTRUE;
       if (counting) count = count+line.Length();
    }
-   if (gVerbose==1) printf(">>>>>>>>> Number of characters found in %s: %d\n",filename.Data(),count);
+   if (gVerbose)
+      printf(">>>>>>>>> Number of characters found in %s: %d\n",filename.Data(),count);
    return count;
 }
 
@@ -278,12 +279,10 @@ TCanvas *StartTest(Int_t w, Int_t h)
 {
    gTestNum++;
    gStyle->Reset();
-   TCanvas *old = (TCanvas*)gROOT->GetListOfCanvases()->FindObject("C");
-   if (old) {
-      if (old->IsOnHeap()) delete old;
-   }
-   TCanvas *C = new TCanvas("C","C",0,0,w,h);
-   return C;
+   auto old = static_cast<TCanvas *> (gROOT->GetListOfCanvases()->FindObject("C"));
+   if (old && old->IsOnHeap())
+      delete old;
+   return new TCanvas("C", "C", 0, 0, w, h);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -298,7 +297,8 @@ TCanvas *StartTest(Int_t w, Int_t h)
 
 void TestReport(TCanvas *C, const TString &title, const TString &arg = "", Int_t IPS = 0)
 {
-   gErrorIgnoreLevel = 9999;
+   if (!gVerbose)
+      gErrorIgnoreLevel = 9999;
 
    const char *main_extension = gWebMode ? "svg" : "ps";
 
@@ -354,7 +354,8 @@ void TestReport(TCanvas *C, const TString &title, const TString &arg = "", Int_t
 
    gReports.emplace_back(e);
 
-   gErrorIgnoreLevel = 0;
+   if (!gVerbose)
+      gErrorIgnoreLevel = 0;
 }
 
 
@@ -363,13 +364,16 @@ void TestReport(TCanvas *C, const TString &title, const TString &arg = "", Int_t
 
 void webcanv_batch_mode(int number)
 {
-   if (!gWebMode) return;
+   if (!gWebMode)
+      return;
 
-   gErrorIgnoreLevel = 9999;
+   if (!gVerbose)
+      gErrorIgnoreLevel = 9999;
 
    gROOT->ProcessLine(TString::Format("TWebCanvas::BatchImageMode(%d);", number));
 
-   gErrorIgnoreLevel = 0;
+   if (!gVerbose)
+      gErrorIgnoreLevel = 0;
 }
 
 
@@ -377,7 +381,7 @@ void webcanv_batch_mode(int number)
 /// Starts new block of tests
 /// In web mode configure number of batch images
 
-void start_block(const TString &title, Bool_t with3d = kFALSE)
+void start_block(const TString &title)
 {
    if (!gOptionR) {
       std::cout << "**********************************************************************" <<std::endl;
@@ -385,7 +389,7 @@ void start_block(const TString &title, Bool_t with3d = kFALSE)
       std::cout << "**********************************************************************" <<std::endl;
    }
 
-   webcanv_batch_mode(with3d ? 10 : 80);
+   webcanv_batch_mode(80);
 }
 
 
@@ -1702,7 +1706,8 @@ void th2poly()
    Double_t lat1 = 24;
    Double_t lat2 = 50;
    TH2Poly *p = new TH2Poly("USA","USA Population",lon1,lon2,lat1,lat2);
-   gErrorIgnoreLevel = 9999;
+   if (!gVerbose)
+      gErrorIgnoreLevel = 9999;
    TFile::SetCacheFileDir(".");
    TFile *f = TFile::Open("http://root.cern/files/usa.root", "CACHEREAD");
 
@@ -2037,7 +2042,7 @@ void earth()
    TH2F *h3 = new TH2F("h03","Sinusoidal",50, -180, 180, 50, -90.5, 90.5);
    TH2F *h4 = new TH2F("h04","Parabolic", 50, -180, 180, 50, -90.5, 90.5);
    std::ifstream in;
-   in.open("../tutorials/graphics/earth.dat");
+   in.open("../tutorials/visualisation/graphics/earth.dat");
    if (!in) {
       in.clear();
       in.open("earth.dat");
@@ -2335,21 +2340,21 @@ void timage()
 {
    TCanvas *C = StartTest(800,800);
 
-   TImage *img = TImage::Open("$(ROOTSYS)/tutorials/image/rose512.jpg");
+   TImage *img = TImage::Open("$(ROOTSYS)/tutorials/visualisation/image/rose512.jpg");
    if (!img) {
       printf("Could not create an image... exit\n");
       return;
    }
-   TImage *i1 = TImage::Open("$(ROOTSYS)/tutorials/image/rose512.jpg");
+   TImage *i1 = TImage::Open("$(ROOTSYS)/tutorials/visualisation/image/rose512.jpg");
    i1->SetConstRatio(kFALSE);
    i1->Flip(90);
-   TImage *i2 = TImage::Open("$(ROOTSYS)/tutorials/image/rose512.jpg");
+   TImage *i2 = TImage::Open("$(ROOTSYS)/tutorials/visualisation/image/rose512.jpg");
    i2->SetConstRatio(kFALSE);
    i2->Flip(180);
-   TImage *i3 = TImage::Open("$(ROOTSYS)/tutorials/image/rose512.jpg");
+   TImage *i3 = TImage::Open("$(ROOTSYS)/tutorials/visualisation/image/rose512.jpg");
    i3->SetConstRatio(kFALSE);
    i3->Flip(270);
-   TImage *i4 = TImage::Open("$(ROOTSYS)/tutorials/image/rose512.jpg");
+   TImage *i4 = TImage::Open("$(ROOTSYS)/tutorials/visualisation/image/rose512.jpg");
    i4->SetConstRatio(kFALSE);
    i4->Mirror(kTRUE);
    float d = 0.40;
@@ -2669,7 +2674,8 @@ void stressGraphics(Int_t verbose = 0, Bool_t generate = kFALSE, Bool_t keep_fil
    gOptionR = generate;
    gOptionK = keep_files;
 
-   gErrorIgnoreLevel = 9999;
+   if (!gVerbose)
+      gErrorIgnoreLevel = 9999;
    gROOT->SetStyle("Classic");
 
    // only in batch web mode use
@@ -2693,10 +2699,10 @@ void stressGraphics(Int_t verbose = 0, Bool_t generate = kFALSE, Bool_t keep_fil
    // Check if cernstaff.root exists
    gCernstaff = TFile::Open("cernstaff.root");
    if (!gCernstaff) {
-      gCernstaff = TFile::Open("$(ROOTSYS)/tutorials/tree/cernstaff.root");
+      gCernstaff = TFile::Open("$(ROOTSYS)/tutorials/io/tree/cernstaff.root");
       if (!gCernstaff) {
          printf("Create ./cernstaff.root\n");
-         gROOT->Macro("$(ROOTSYS)/tutorials/tree/cernbuild.C(0,0)");
+         gROOT->Macro("$(ROOTSYS)/tutorials/io/tree/tree500_cernbuild.C(0,0)");
          gCernstaff = TFile::Open("cernstaff.root");
          if (!gCernstaff) {
             printf("Could not create ./cernstaff.root\n");
@@ -2705,7 +2711,8 @@ void stressGraphics(Int_t verbose = 0, Bool_t generate = kFALSE, Bool_t keep_fil
       }
    }
 
-   gErrorIgnoreLevel = 0;
+   if (!gVerbose)
+      gErrorIgnoreLevel = 0;
 
    const char *ref_name = "stressGraphics.ref";
    if (gWebMode) {
@@ -2771,7 +2778,7 @@ void stressGraphics(Int_t verbose = 0, Bool_t generate = kFALSE, Bool_t keep_fil
    waves         ();
    print_reports ();
 
-   start_block("High Level 3D Primitives", kTRUE);
+   start_block("High Level 3D Primitives");
    options2d1    ();
    options2d2    ();
    options2d3    ();
@@ -2795,7 +2802,7 @@ void stressGraphics(Int_t verbose = 0, Bool_t generate = kFALSE, Bool_t keep_fil
    if (gSkip3D) {
       gTestNum += 1;
    } else {
-      ntuple1       ();
+      ntuple1    ();
    }
    quarks        ();
    timage        ();

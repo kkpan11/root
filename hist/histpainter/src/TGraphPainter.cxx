@@ -118,14 +118,12 @@ Graphs can be drawn with the following options:
 | "*"      | A Star is plotted at each point |
 | "P"      | The current marker is plotted at each point |
 | "B"      | A Bar chart is drawn |
-| "1"      | When a graph is drawn as a bar chart, this option makes the bars start from the bottom of the pad. By default they start at 0. |
-| "X+"     | The X-axis is drawn on the top side of the plot. |
-| "Y+"     | The Y-axis is drawn on the right side of the plot. |
-| "PFC"    | Palette Fill Color: graph's fill color is taken in the current palette. |
-| "PLC"    | Palette Line Color: graph's line color is taken in the current palette. |
-| "PMC"    | Palette Marker Color: graph's marker color is taken in the current palette. |
-| "RX"     | Reverse the X axis. |
-| "RY"     | Reverse the Y axis. |
+| "1"      | When a graph is drawn as a bar chart, this option makes the bars start from the bottom of the pad. By
+default they start at 0. | | "X+"     | The X-axis is drawn on the top side of the plot. | | "Y+"     | The Y-axis is
+drawn on the right side of the plot. | | "PFC"    | Palette Fill Color: graph's fill color is taken in the current
+palette. | | "PLC"    | Palette Line Color: graph's line color is taken in the current palette. | | "PMC"    | Palette
+Marker Color: graph's marker color is taken in the current palette. | | "RX"     | Reverse the X axis. | | "RY"     |
+Reverse the Y axis. |
 
 Drawing options can be combined. In the following example the graph
 is drawn as a smooth curve (option "C") with markers (option "P") and
@@ -211,7 +209,7 @@ case the line width number is interpreted as:
 The current fill area attributes are used to draw the hatched zone.
 
 Begin_Macro(source)
-../../../tutorials/graphs/exclusiongraph.C
+../../../tutorials/visualisation/graphs/exclusiongraph.C
 End_Macro
 
 \anchor GrP3
@@ -222,17 +220,21 @@ The following drawing options are specific to graphs with error bars:
 
 | Option   | Description                                                       |
 |----------|-------------------------------------------------------------------|
-| "Z"      | Do not draw small horizontal and vertical lines the end of the error bars. Without "Z", the default is to draw these. |
-| ">"      | An arrow is drawn at the end of the error bars. The size of the arrow is set to 2/3 of the marker size. |
-| \"\|\>\" | A filled arrow is drawn at the end of the error bars. The size of the arrow is set to 2/3 of the marker size. |
-| "X"      | Do not draw error bars.  By default, graph classes that have errors are drawn with the errors (TGraph itself has no errors, and so this option has no effect.) |
-| \"\|\|\" | Draw only the small vertical/horizontal lines at the ends of the error bars, without drawing the bars themselves. This option is interesting to superimpose statistical-only errors on top of a graph with statistical+systematic errors. |
-| "[]"     | Does the same as option \"\|\|\" except that it draws additional marks at the ends of the small vertical/horizontal lines. It makes plots less ambiguous in case several graphs are drawn on the same picture. |
-| "0"      | By default, when a data point is outside the visible range along the Y axis, the error bars are not drawn. This option forces error bars' drawing for the data points outside the visible range along the Y axis (see example below). |
-| "2"      | Error rectangles are drawn. |
-| "3"      | A filled area is drawn through the end points of the vertical error bars. |
-| "4"      | A smoothed filled area is drawn through the end points of the vertical error bars. |
-| "5"      | Error rectangles are drawn like option "2". In addition the contour line around the boxes is drawn. This can be useful when boxes' fill colors are very light or in gray scale mode. |
+| "Z"      | Do not draw small horizontal and vertical lines the end of the error bars. Without "Z", the default is to
+draw these. | | ">"      | An arrow is drawn at the end of the error bars. The size of the arrow is set to 2/3 of the
+marker size. | | \"\|\>\" | A filled arrow is drawn at the end of the error bars. The size of the arrow is set to 2/3 of
+the marker size. | | "X"      | Do not draw error bars.  By default, graph classes that have errors are drawn with the
+errors (TGraph itself has no errors, and so this option has no effect.) | | \"\|\|\" | Draw only the small
+vertical/horizontal lines at the ends of the error bars, without drawing the bars themselves. This option is interesting
+to superimpose statistical-only errors on top of a graph with statistical+systematic errors. | | "[]"     | Does the
+same as option \"\|\|\" except that it draws additional marks at the ends of the small vertical/horizontal lines. It
+makes plots less ambiguous in case several graphs are drawn on the same picture. | | "0"      | By default, when a data
+point is outside the visible range along the Y axis, the error bars are not drawn. This option forces error bars'
+drawing for the data points outside the visible range along the Y axis (see example below). | | "2"      | Error
+rectangles are drawn. | | "3"      | A filled area is drawn through the end points of the vertical error bars. | | "4"
+| A smoothed filled area is drawn through the end points of the vertical error bars. | | "5"      | Error rectangles are
+drawn like option "2". In addition the contour line around the boxes is drawn. This can be useful when boxes' fill
+colors are very light or in gray scale mode. |
 
 
 `gStyle->SetErrorX(dx)` controls the size of the error along x.
@@ -437,8 +439,10 @@ In addition to the draw options of options of `TGraphAsymmErrors` the following 
 |----------|----------------|-------------------------------------------------------------------|
 | "X0"     | First one only | Do not draw errors for points with x = 0 |
 | "Y0"     | First one only | Do not draw errors for points with y = 0 |
-| "s=%f"   | Any            | Scales the x-Errors with %f similar to `gStyle->SetErrorX(dx)` but does not affect them directly (Useful when used in addition with box errors to make the box only half as wide as the x-Errors e.g. s=0.5) |
-| "S"      | First one only | Use individual TAttFill and TAttLine attributes for the different error dimensions instead of the global ones. |
+| "s=%f"   | Any            | Scales the x-Errors with %f similar to `gStyle->SetErrorX(dx)` but does not affect them
+directly (Useful when used in addition with box errors to make the box only half as wide as the x-Errors e.g. s=0.5) |
+| "S"      | First one only | Use individual TAttFill and TAttLine attributes for the different error dimensions instead
+of the global ones. |
 
 
 Per default the Fill and Line Styles of the Graph are being used for all error
@@ -456,10 +460,8 @@ Begin_Macro(source)
    double* aeylsys  = new double[5]  {0.5, 0.4, 0.8, 0.3, 1.2};
    double* aeyhsys  = new double[5]  {0.6, 0.7, 0.6, 0.4, 0.8};
 
-   TGraphMultiErrors* gme = new TGraphMultiErrors("gme", "TGraphMultiErrors Example", 5, ax, ay, aexl, aexh, aeylstat, aeyhstat);
-   gme->AddYError(5, aeylsys, aeyhsys);
-   gme->SetMarkerStyle(20);
-   gme->SetLineColor(kRed);
+   TGraphMultiErrors* gme = new TGraphMultiErrors("gme", "TGraphMultiErrors Example", 5, ax, ay, aexl, aexh, aeylstat,
+aeyhstat); gme->AddYError(5, aeylsys, aeyhsys); gme->SetMarkerStyle(20); gme->SetLineColor(kRed);
    gme->GetAttLine(0)->SetLineColor(kRed);
    gme->GetAttLine(1)->SetLineColor(kBlue);
    gme->GetAttFill(1)->SetFillStyle(0);
@@ -476,11 +478,16 @@ The drawing options for the polar graphs are the following:
 
 | Option   | Description                                                       |
 |----------|-------------------------------------------------------------------|
-| "O"      | Polar labels are drawn orthogonally to the polargram radius. |
 | "P"      | Polymarker are drawn at each point position. |
 | "E"      | Draw error bars. |
 | "F"      | Draw fill area (closed polygon). |
+| "L"      | Draw line. |
+| "C"      | Draw curve. |
 | "A"      | Force axis redrawing even if a polargram already exists. |
+| "R"      | Use radians for angle coordinates. |
+| "D"      | Use degrees for angle coordinates. |
+| "G"      | Use grads for angle coordinates. |
+| "O"      | Polar labels are drawn orthogonally to the polargram radius. |
 | "N"      | Disable the display of the polar labels. |
 
 
@@ -503,11 +510,7 @@ Begin_Macro(source)
    grP1->SetMarkerSize(1.);
    grP1->SetMarkerColor(4);
    grP1->SetLineColor(4);
-   grP1->Draw("ALP");
-
-   // Update, otherwise GetPolargram returns 0
-   c46->Update();
-   grP1->GetPolargram()->SetToRadian();
+   grP1->Draw("ARLP");
 }
 End_Macro
 
@@ -527,11 +530,11 @@ is determined according to the number of objects having palette coloring in
 the current pad.
 
 Begin_Macro(source)
-../../../tutorials/graphs/graphpalettecolor.C
+../../../tutorials/visualisation/graphs/graphpalettecolor.C
 End_Macro
 
 Begin_Macro(source)
-../../../tutorials/graphs/multigraphpalettecolor.C
+../../../tutorials/visualisation/graphs/multigraphpalettecolor.C
 End_Macro
 
 \anchor GrP6
@@ -630,14 +633,14 @@ graphically. Point will be highlighted as "point circle" (presented by
 marker object). Moreover, any highlight (change of point) emits signal
 `TCanvas::Highlighted()` which allows the user to react and call their own
 function. For a better understanding please see also the tutorials
-`$ROOTSYS/tutorials/graphs/hlGraph*.C` files.
+`$ROOTSYS/tutorials/visualisation/graphs/hlGraph*.C` files.
 
 Highlight mode is switched on/off by `TGraph::SetHighlight()` function
 or interactively from `TGraph` context menu. `TGraph::IsHighlight()` to verify
 whether the highlight mode enabled or disabled, default it is disabled.
 
 ~~~ {.cpp}
-    root [0] .x $ROOTSYS/tutorials/graphs/gerrors2.C
+    root [0] .x $ROOTSYS/tutorials/visualisation/graphs/gerrors2.C
     root [1] // try SetHighlight() interactively from TGraph context menu
 ~~~
 
@@ -659,7 +662,6 @@ NOTE all parameters of user function are taken from
 For more complex demo please see for example `$ROOTSYS/tutorials/math/hlquantiles.C` file.
 
 */
-
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Default constructor
@@ -3788,10 +3790,6 @@ void TGraphPainter::PaintGraphErrors(TGraph *theGraph, Option_t *option)
 
 void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
 {
-
-   Int_t ipt, i;
-   Double_t rwrmin, rwrmax, rwtmin, rwtmax;
-
    TGraphPolar *theGraphPolar = (TGraphPolar*) theGraph;
 
    Int_t theNpoints  = theGraphPolar->GetN();
@@ -3800,14 +3798,29 @@ void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
    Double_t *theEX   = theGraphPolar->GetEX();
    Double_t *theEY   = theGraphPolar->GetEY();
 
-   if (theNpoints<1) return;
+   if (theNpoints < 1)
+      return;
+
    TString opt = options;
    opt.ToUpper();
 
-   Bool_t nolabel = kFALSE;
-   if (opt.Contains("N")){
-      nolabel = kTRUE;
+   // same is ignored
+   opt.ReplaceAll("SAME","");
+
+   TString polargram_opt;
+
+   if (opt.Contains("N")) {
+      polargram_opt.Append("N");
       opt.ReplaceAll("N","");
+   }
+
+   if (opt.Contains("O")) {
+      polargram_opt.Append("O");
+      opt.ReplaceAll("O","");
+   }
+
+   if (opt.Contains("A")) {
+      opt.ReplaceAll("A","");
    }
 
    TGraphPolargram *thePolargram = theGraphPolar->GetPolargram();
@@ -3815,86 +3828,52 @@ void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
    // Check for existing TGraphPolargram in the Pad
    if (gPad) {
       // Existing polargram
-      if (thePolargram) if (!gPad->FindObject(thePolargram->GetName())) thePolargram=nullptr;
+      if (thePolargram && !gPad->FindObject(thePolargram))
+         thePolargram = nullptr;
       if (!thePolargram) {
          // Find any other Polargram in the Pad
-         TListIter padObjIter(gPad->GetListOfPrimitives());
-         while (TObject* AnyObj = padObjIter.Next()) {
-            if (TString(AnyObj->ClassName()).CompareTo("TGraphPolargram",
-                                                      TString::kExact)==0)
-            thePolargram = (TGraphPolargram*)AnyObj;
-            theGraphPolar->SetPolargram(thePolargram);
+         TIter padObjIter(gPad->GetListOfPrimitives());
+         while (auto obj = padObjIter()) {
+            if (obj->InheritsFrom(TGraphPolargram::Class())) {
+               thePolargram = static_cast<TGraphPolargram*>(obj);
+               theGraphPolar->SetPolargram(thePolargram);
+            }
          }
       }
    }
 
-   // Get new polargram range if necessary.
+   // Create polargram when not exists
    if (!thePolargram) {
-      // Get range, initialize with first/last value
-      rwrmin = theY[0]; rwrmax = theY[theNpoints-1];
-      rwtmin = theX[0]; rwtmax = theX[theNpoints-1];
-
-      for (ipt = 0; ipt < theNpoints; ipt++) {
-         // Check for errors if available
-         if (theEX) {
-            if (theX[ipt] -theEX[ipt] < rwtmin) rwtmin = theX[ipt]-theEX[ipt];
-            if (theX[ipt] +theEX[ipt] > rwtmax) rwtmax = theX[ipt]+theEX[ipt];
-         } else {
-            if (theX[ipt] < rwtmin) rwtmin=theX[ipt];
-            if (theX[ipt] > rwtmax) rwtmax=theX[ipt];
-         }
-         if (theEY) {
-            if (theY[ipt] -theEY[ipt] < rwrmin) rwrmin = theY[ipt]-theEY[ipt];
-            if (theY[ipt] +theEY[ipt] > rwrmax) rwrmax = theY[ipt]+theEY[ipt];
-         } else {
-            if (theY[ipt] < rwrmin) rwrmin=theY[ipt];
-            if (theY[ipt] > rwrmax) rwrmax=theY[ipt];
-         }
-      }
-      // Add radial and Polar margins.
-      if (rwrmin == rwrmax) rwrmax += 1.;
-      if (rwtmin == rwtmax) rwtmax += 1.;
-      Double_t dr = (rwrmax-rwrmin);
-      Double_t dt = (rwtmax-rwtmin);
-      rwrmax += 0.1*dr;
-      rwrmin -= 0.1*dr;
-
-      // Assume equally spaced points for full 2*Pi.
-      rwtmax += dt/theNpoints;
-   } else {
-      rwrmin = thePolargram->GetRMin();
-      rwrmax = thePolargram->GetRMax();
-      rwtmin = thePolargram->GetTMin();
-      rwtmax = thePolargram->GetTMax();
-   }
-
-   if ((!thePolargram) || theGraphPolar->GetOptionAxis()) {
-      // Draw Polar coord system
-      thePolargram = new TGraphPolargram("Polargram",rwrmin,rwrmax,rwtmin,rwtmax);
+      thePolargram = theGraphPolar->CreatePolargram(opt.Data());
+      if (!thePolargram)
+         return;
       theGraphPolar->SetPolargram(thePolargram);
-      if (opt.Contains("O")) thePolargram->SetBit(TGraphPolargram::kLabelOrtho);
-      else thePolargram->ResetBit(TGraphPolargram::kLabelOrtho);
-      if (nolabel) thePolargram->Draw("N");
-      else         thePolargram->Draw("");
-      theGraphPolar->SetOptionAxis(kFALSE);   //Prevent redrawing
+      thePolargram->Draw(polargram_opt.Data());
    }
+
+   Double_t rwrmin = thePolargram->GetRMin(),
+            rwrmax = thePolargram->GetRMax(),
+            rwtmin = thePolargram->GetTMin(),
+            rwtmax = thePolargram->GetTMax();
 
    // Convert points to polar.
    Double_t *theXpol = theGraphPolar->GetXpol();
    Double_t *theYpol = theGraphPolar->GetYpol();
 
    // Project theta in [0,2*Pi] and radius in [0,1].
-   Double_t radiusNDC = rwrmax-rwrmin;
-   Double_t thetaNDC  = (rwtmax-rwtmin)/(2*TMath::Pi());
+   Double_t radiusNDC = rwrmax - rwrmin;
+   Double_t thetaNDC  = (rwtmax - rwtmin) / (2*TMath::Pi());
 
    // Draw the error bars.
    // Y errors are lines, but X errors are pieces of circles.
    if (opt.Contains("E")) {
-      Double_t c=1;
-      if (thePolargram->IsDegree()) {c=180/TMath::Pi();}
-      if (thePolargram->IsGrad())   {c=100/TMath::Pi();}
+      Double_t c = 1;
+      if (thePolargram->IsDegree())
+         c = 180 / TMath::Pi();
+      if (thePolargram->IsGrad())
+         c = 100 / TMath::Pi();
       if (theEY) {
-         for (i=0; i<theNpoints; i++) {
+         for (Int_t i = 0; i < theNpoints; i++) {
             Double_t eymin, eymax, exmin,exmax;
             exmin = (theY[i]-theEY[i]-rwrmin)/radiusNDC*
                      TMath::Cos(c*(theX[i]-rwtmin)/thetaNDC);
@@ -3909,7 +3888,7 @@ void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
          }
       }
       if (theEX) {
-         for (i=0; i<theNpoints; i++) {
+         for (Int_t i = 0; i < theNpoints; i++) {
             Double_t rad    = (theY[i]-rwrmin)/radiusNDC;
             Double_t phimin = c*(theX[i]-theEX[i]-rwtmin)/thetaNDC*180/TMath::Pi();
             Double_t phimax = c*(theX[i]+theEX[i]-rwtmin)/thetaNDC*180/TMath::Pi();
@@ -3920,16 +3899,18 @@ void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
    }
 
    // Draw the graph itself.
-   if (!(gPad->GetLogx()) && !(gPad->GetLogy())) {
-      Double_t a, b, c=1, x1, x2, y1, y2, discr, norm1, norm2, xts, yts;
+   if (!gPad->GetLogx() && !gPad->GetLogy()) {
+      Double_t a, b, c = 1, x1, x2, y1, y2, discr, norm1, norm2, xts, yts;
       Bool_t previouspointin = kFALSE;
       Double_t norm = 0;
       Double_t xt   = 0;
       Double_t yt   = 0 ;
       Int_t j       = -1;
-      if (thePolargram->IsDegree()) {c=180/TMath::Pi();}
-      if (thePolargram->IsGrad())   {c=100/TMath::Pi();}
-      for (i=0; i<theNpoints; i++) {
+      if (thePolargram->IsDegree())
+         c = 180 / TMath::Pi();
+      if (thePolargram->IsGrad())
+         c = 100 / TMath::Pi();
+      for (Int_t i = 0; i < theNpoints; i++) {
          xts  = xt;
          yts  = yt;
          xt   = (theY[i]-rwrmin)/radiusNDC*TMath::Cos(c*(theX[i]-rwtmin)/thetaNDC);
@@ -3999,11 +3980,11 @@ void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
          PaintGraph(theGraphPolar, j+1, theXpol, theYpol, opt);
       }
    } else {
-      for (i=0; i<theNpoints; i++) {
+      for (Int_t i = 0; i < theNpoints; i++) {
          theXpol[i] = TMath::Abs((theY[i]-rwrmin)/radiusNDC*TMath::Cos((theX[i]-rwtmin)/thetaNDC)+1);
          theYpol[i] = TMath::Abs((theY[i]-rwrmin)/radiusNDC*TMath::Sin((theX[i]-rwtmin)/thetaNDC)+1);
       }
-      PaintGraph(theGraphPolar, theNpoints, theXpol, theYpol,opt);
+      PaintGraph(theGraphPolar, theNpoints, theXpol, theYpol, opt);
    }
 
    // Paint the title.
@@ -4013,11 +3994,12 @@ void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
    TPaveText *title = nullptr;
    TIter next(gPad->GetListOfPrimitives());
    while (auto obj = next()) {
-      if (!obj->InheritsFrom(TPaveText::Class())) continue;
-      title = (TPaveText*)obj;
-      if (title->GetName())
-         if (strcmp(title->GetName(),"title")) {title = nullptr; continue;}
-      break;
+      if (!obj->InheritsFrom(TPaveText::Class()))
+         continue;
+      if (obj->GetName() && !strcmp(obj->GetName(),"title")) {
+         title = static_cast<TPaveText *>(obj);
+         break;
+      }
    }
    if (nt == 0 || gStyle->GetOptTitle() <= 0) {
       if (title) delete title;
@@ -4074,7 +4056,7 @@ void TGraphPainter::PaintGraphPolar(TGraph *theGraph, Option_t* options)
    ptitle->AddText(theGraph->GetTitle());
    ptitle->SetBit(kCanDelete);
    ptitle->Draw();
-   ptitle->Paint();
+   ptitle->Paint("blNDC");
 }
 
 
@@ -4909,7 +4891,7 @@ void TGraphPainter::PaintStats(TGraph *theGraph, TF1 *fit)
    }
 
    if (!done) functions->Add(stats);
-   stats->Paint();
+   stats->Paint(stats->GetOption());
 }
 
 

@@ -39,6 +39,12 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <spawn.h>
+#ifdef R__MACOSX
+#include <sys/wait.h>
+#include <crt_externs.h>
+#else
+#include <wait.h>
+#endif
 #endif
 
 using namespace ROOT;
@@ -211,6 +217,10 @@ void RWebDisplayHandle::BrowserCreator::TestProg(const std::string &nexttry, boo
 #endif
 }
 
+
+static void DummyTimeOutHandler(int /* Sig */) {}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// Display given URL in web browser
 
@@ -313,6 +323,9 @@ RWebDisplayHandle::BrowserCreator::Display(const RWebDisplayArgs &args)
 
       exec.erase(0, 5);
 
+      // in case of redirection process will wait until output is produced
+      std::string redirect = args.GetRedirectOutput();
+
 #ifndef _MSC_VER
 
       std::unique_ptr<TObjArray> fargs(TString(exec.c_str()).Tokenize(" "));
@@ -331,13 +344,99 @@ RWebDisplayHandle::BrowserCreator::Display(const RWebDisplayArgs &args)
 
       R__LOG_DEBUG(0, WebGUILog()) << "Show web window in browser with posix_spawn:\n" << fProg << " " << exec;
 
+      posix_spawn_file_actions_t action;
+      posix_spawn_file_actions_init(&action);
+      if (redirect.empty())
+         posix_spawn_file_actions_addopen(&action, STDOUT_FILENO, "/dev/null", O_WRONLY|O_APPEND, 0);
+      else
+         posix_spawn_file_actions_addopen(&action, STDOUT_FILENO, redirect.c_str(), O_WRONLY|O_CREAT, 0600);
+      posix_spawn_file_actions_addopen(&action, STDERR_FILENO, "/dev/null", O_WRONLY|O_APPEND, 0);
+
+#ifdef R__MACOSX
+      char **envp = *_NSGetEnviron();
+#else
+      char **envp = environ;
+#endif
+
       pid_t pid;
-      int status = posix_spawn(&pid, argv[0], nullptr, nullptr, argv.data(), nullptr);
+      int status = posix_spawn(&pid, argv[0], &action, nullptr, argv.data(), envp);
+
+      posix_spawn_file_actions_destroy(&action);
+
       if (status != 0) {
          if (!tmpfile.empty())
             gSystem->Unlink(tmpfile.c_str());
          R__LOG_ERROR(WebGUILog()) << "Fail to launch " << argv[0];
          return nullptr;
+      }
+
+      if (!redirect.empty()) {
+         Int_t batch_timeout = gEnv->GetValue("WebGui.BatchTimeout", 30);
+         struct sigaction Act, Old;
+         int elapsed_time = 0;
+
+         if (batch_timeout) {
+            memset(&Act, 0, sizeof(Act));
+            Act.sa_handler = DummyTimeOutHandler;
+            sigemptyset(&Act.sa_mask);
+            sigaction(SIGALRM, &Act, &Old);
+            int alarm_timeout = batch_timeout > 3 ? 3 : batch_timeout;
+            alarm(alarm_timeout);
+            elapsed_time = alarm_timeout;
+         }
+
+         int job_done = 0;
+         std::string dump_content;
+
+         while (!job_done) {
+
+            // wait until output is produced
+            int wait_status = 0;
+
+            auto wait_res = waitpid(pid, &wait_status, WUNTRACED | WCONTINUED);
+
+            // try read dump anyway
+            dump_content = THttpServer::ReadFileContent(redirect.c_str());
+
+            if (dump_content.find("<div>###batch###job###done###</div>") != std::string::npos)
+               job_done = 1;
+
+            if (wait_res == -1) {
+               // failure when finish process
+               int alarm_timeout = batch_timeout - elapsed_time;
+               if ((errno == EINTR) && (alarm_timeout > 0) && !job_done) {
+                  if (alarm_timeout > 2) alarm_timeout = 2;
+                  elapsed_time += alarm_timeout;
+                  alarm(alarm_timeout);
+               } else {
+                  // end of timeout - do not try to wait any longer
+                  job_done = 1;
+               }
+            } else if (!WIFEXITED(wait_status) && !WIFSIGNALED(wait_status)) {
+               // abnormal end of browser process
+               job_done = 1;
+            } else {
+               // this is normal finish, no need for process kill
+               job_done = 2;
+            }
+         }
+
+         if (job_done != 2) {
+            // kill browser process when no normal end was detected
+            kill(pid, SIGKILL);
+         }
+
+         if (batch_timeout) {
+            alarm(0); // disable alarm
+            sigaction(SIGALRM, &Old, nullptr);
+         }
+
+         if (gEnv->GetValue("WebGui.PreserveBatchFiles", -1) > 0)
+            ::Info("RWebDisplayHandle::Display", "Preserve dump file %s", redirect.c_str());
+         else
+            gSystem->Unlink(redirect.c_str());
+
+         return std::make_unique<RWebBrowserHandle>(url, rmdir, tmpfile, dump_content);
       }
 
       // add processid and rm dir
@@ -510,12 +609,12 @@ RWebDisplayHandle::ChromeCreator::ChromeCreator(bool _edge) : BrowserCreator(tru
 #endif
    if (use_normal) {
       // old browser with standard headless mode
-      fBatchExec = gEnv->GetValue((fEnvPrefix + "Batch").c_str(), "$prog --headless --no-sandbox --disable-extensions --disable-audio-output $geometry --dump-dom $url 2>/dev/null");
-      fHeadlessExec = gEnv->GetValue((fEnvPrefix + "Headless").c_str(), "$prog --headless --no-sandbox --disable-extensions --disable-audio-output $geometry \'$url\' >/dev/null 2>/dev/null &");
+      fBatchExec = gEnv->GetValue((fEnvPrefix + "Batch").c_str(), "fork:--headless --no-sandbox --disable-extensions --disable-audio-output $geometry --dump-dom $url");
+      fHeadlessExec = gEnv->GetValue((fEnvPrefix + "Headless").c_str(), "fork:--headless --no-sandbox --disable-extensions --disable-audio-output $geometry $url");
    } else {
       // newer version with headless=new mode
-      fBatchExec = gEnv->GetValue((fEnvPrefix + "Batch").c_str(), "$prog --headless=new --no-sandbox --disable-extensions --disable-audio-output $geometry --dump-dom $url 2>/dev/null");
-      fHeadlessExec = gEnv->GetValue((fEnvPrefix + "Headless").c_str(), "$prog --headless=new --no-sandbox --disable-extensions --disable-audio-output $geometry \'$url\' >/dev/null 2>/dev/null &");
+      fBatchExec = gEnv->GetValue((fEnvPrefix + "Batch").c_str(), "fork:--headless=new --no-sandbox --disable-extensions --disable-audio-output $geometry --dump-dom $url");
+      fHeadlessExec = gEnv->GetValue((fEnvPrefix + "Headless").c_str(), "fork:--headless=new --no-sandbox --disable-extensions --disable-audio-output $geometry $url");
    }
    fExec = gEnv->GetValue((fEnvPrefix + "Interactive").c_str(), "$prog $geometry --new-window --app=\'$url\' >/dev/null 2>/dev/null &");
 #endif
@@ -609,7 +708,7 @@ RWebDisplayHandle::FirefoxCreator::FirefoxCreator() : BrowserCreator(true)
    fHeadlessExec = gEnv->GetValue("WebGui.FirefoxHeadless", "fork:-headless -no-remote $profile \"$url\"");
    fExec = gEnv->GetValue("WebGui.FirefoxInteractive", "$prog -no-remote $profile $geometry $url &");
 #else
-   fBatchExec = gEnv->GetValue("WebGui.FirefoxBatch", "$rootetcdir/runfirefox.sh $dumpfile $cleanup_profile $prog --headless -no-remote -new-instance $profile $url 2>/dev/null");
+   fBatchExec = gEnv->GetValue("WebGui.FirefoxBatch", "fork:--headless -no-remote -new-instance $profile $url");
    fHeadlessExec = gEnv->GetValue("WebGui.FirefoxHeadless", "fork:--headless -no-remote $profile --private-window $url");
    fExec = gEnv->GetValue("WebGui.FirefoxInteractive", "$rootetcdir/runfirefox.sh __nodump__ $cleanup_profile $prog -no-remote $profile $geometry -url \'$url\' &");
 #endif
@@ -1074,7 +1173,7 @@ bool RWebDisplayHandle::ProduceImages(const std::vector<std::string> &fnames, co
         isFirefox = args.GetBrowserKind() == RWebDisplayArgs::kFirefox;
 
    std::vector<std::string> draw_kinds;
-   bool use_browser_draw = false;
+   bool use_browser_draw = false, can_optimize_json = false;
    TString jsonkind;
 
    if (fmts[0] == "s.png") {
@@ -1094,6 +1193,7 @@ bool RWebDisplayHandle::ProduceImages(const std::vector<std::string> &fnames, co
    } else {
       draw_kinds = fmts;
       jsonkind = TBufferJSON::ToJSON(&draw_kinds, TBufferJSON::kNoSpaces);
+      can_optimize_json = true;
    }
 
    if (!batch_file || !*batch_file)
@@ -1122,10 +1222,15 @@ bool RWebDisplayHandle::ProduceImages(const std::vector<std::string> &fnames, co
    auto jsonw = TBufferJSON::ToJSON(&widths, TBufferJSON::kNoSpaces);
    auto jsonh = TBufferJSON::ToJSON(&heights, TBufferJSON::kNoSpaces);
 
-   std::string mains;
+   std::string mains, prev;
    for (auto &json : jsons) {
       mains.append(mains.empty() ? "[" : ", ");
-      mains.append(json);
+      if (can_optimize_json && (json == prev)) {
+         mains.append("'same'");
+      } else {
+         mains.append(json);
+         prev = json;
+      }
    }
    mains.append("]");
 
@@ -1312,29 +1417,26 @@ try_again:
          if (fmts[n].empty())
             continue;
          if (fmts[n] == "svg") {
-            auto p1 = dumpcont.find("<svg", p);
-            auto p2 = dumpcont.find("</svg></div>", p1 + 4);
-            p = p2 + 6;
+            auto p1 = dumpcont.find("<div><svg", p);
+            auto p2 = dumpcont.find("</svg></div>", p1 + 8);
+            p = p2 + 12;
             std::ofstream ofs(fnames[n]);
             if ((p1 != std::string::npos) && (p2 != std::string::npos) && (p1 < p2)) {
                if (p2 - p1 > 10) {
-                  ofs << dumpcont.substr(p1, p2 - p1 + 6);
-                  ::Info("ProduceImages", "SVG file %s size %d bytes has been created", fnames[n].c_str(), (int) (p2 - p1 + 6));
+                  ofs << dumpcont.substr(p1 + 5, p2 - p1 + 1);
+                  ::Info("ProduceImages", "Image file %s size %d bytes has been created", fnames[n].c_str(), (int) (p2 - p1 + 1));
                } else {
                   ::Error("ProduceImages", "Failure producing %s", fnames[n].c_str());
                }
-            } else {
-               ::Error("ProduceImages", "Fail to extract %s from HTML dump", fnames[n].c_str());
-               return false;
             }
          } else {
-            auto p0 = dumpcont.find("<img src=", p);
+            auto p0 = dumpcont.find("<img src=\"", p);
             auto p1 = dumpcont.find(";base64,", p0 + 8);
-            auto p2 = dumpcont.find("></div>", p1 + 4);
-            p = p2 + 5;
+            auto p2 = dumpcont.find("\">", p1 + 8);
+            p = p2 + 2;
 
             if ((p0 != std::string::npos) && (p1 != std::string::npos) && (p2 != std::string::npos) && (p1 < p2)) {
-               auto base64 = dumpcont.substr(p1+8, p2-p1-9);
+               auto base64 = dumpcont.substr(p1+8, p2-p1-8);
                if ((base64 == "failure") || (base64.length() < 10)) {
                   ::Error("ProduceImages", "Failure producing %s", fnames[n].c_str());
                } else {
@@ -1344,7 +1446,7 @@ try_again:
                   ::Info("ProduceImages", "Image file %s size %d bytes has been created", fnames[n].c_str(), (int) binary.Length());
                }
             } else {
-               ::Error("ProduceImages", "Fail to extract %s from HTML dump", fnames[n].c_str());
+               ::Error("ProduceImages", "Failure producing %s", fnames[n].c_str());
                return false;
             }
          }
