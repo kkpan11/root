@@ -32,10 +32,10 @@ a tree as described above if performance is not an issue or when dealing with
 a small dataset. To read and process the entries of a tree in a much faster
 way, please use ROOT::RDataFrame.
 
-Two methods of TTree have been pythonised to facilitate their: TTree::Branch and
+Two methods of TTree have been pythonized to facilitate their: TTree::Branch and
 TTree::SetBranchAddress.
 
-### Pythonisation of TTree::Branch
+### Pythonization of TTree::Branch
 
 The following example shows how we can create different types of branches of a TTree.
 `Branch` links the new branch with a given Python object. It is therefore possible to
@@ -98,7 +98,7 @@ with ROOT.TFile("outfile.root", "RECREATE") as ofile:
     t.Write()
 \endcode
 
-### Pythonisation of TTree::SetBranchAddress
+### Pythonization of TTree::SetBranchAddress
 
 This section is to be considered for advanced users. Simple event
 loops reading tree entries in Python can be performed as shown above.
@@ -162,7 +162,7 @@ with ROOT.TFile('outfile.root') as infile:
 from libROOTPythonizations import GetBranchAttr, BranchPyz
 from ._rvec import _array_interface_dtype_map, _get_cpp_type_from_numpy_type
 from . import pythonization
-
+from ROOT._pythonization._memory_utils import _should_give_up_ownership, _constructor_releasing_ownership, _SetDirectory_SetOwnership
 
 # TTree iterator
 def _TTree__iter__(self):
@@ -308,12 +308,32 @@ def _TTree__getattr__(self, key):
         out = cppyy.ll.cast[cast_type](out)
     return out
 
+def _TTree_CloneTree(self, *args, **kwargs):
+    """
+    Forward the arguments to the C++ function and give up ownership if the
+    TTree is attached to a TFile, which is the owner in that case.
+    """
+    import ROOT
+
+    out_tree = self._CloneTree(*args, **kwargs)
+    if _should_give_up_ownership(out_tree):
+        ROOT.SetOwnership(out_tree, False)
+
+    return out_tree
 
 @pythonization("TTree")
 def pythonize_ttree(klass, name):
     # Parameters:
     # klass: class to be pythonized
     # name: string containing the name of the class
+
+    # Functions that need to drop the ownership if the current directory is a TFile
+
+    klass._cpp_constructor = klass.__init__
+    klass.__init__ = _constructor_releasing_ownership
+
+    klass._CloneTree = klass.CloneTree
+    klass.CloneTree = _TTree_CloneTree
 
     # Pythonizations that are common to TTree and its subclasses.
     # To avoid duplicating the same logic in the pythonizors of
@@ -334,6 +354,9 @@ def pythonize_ttree(klass, name):
     klass._OriginalBranch = klass.Branch
     klass.Branch = _Branch
 
+    klass._Original_SetDirectory = klass.SetDirectory
+    klass.SetDirectory = _SetDirectory_SetOwnership
+
 
 @pythonization("TChain")
 def pythonize_tchain(klass):
@@ -350,3 +373,10 @@ def pythonize_tchain(klass):
     # SetBranchAddress
     klass._OriginalSetBranchAddress = klass.SetBranchAddress
     klass.SetBranchAddress = _SetBranchAddress
+
+@pythonization("TNtuple")
+def pythonize_tchain(klass):
+
+    # The constructor needs to be explicitly pythonized for derived classes.
+    klass._cpp_constructor = klass.__init__
+    klass.__init__ = _constructor_releasing_ownership
