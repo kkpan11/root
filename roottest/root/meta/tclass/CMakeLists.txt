@@ -93,23 +93,27 @@ ROOTTEST_ADD_TEST(datamemberload
 ROOTTEST_GENERATE_DICTIONARY(libInitOrderDups
                              InitOrderDups.h
                              LINKDEF InitOrderDupsLinkDef.h
-                             NO_ROOTMAP NO_CXXMODULE)
+                             NO_ROOTMAP NO_CXXMODULE
+                             FIXTURES_SETUP InitOrder)
 
 ROOTTEST_GENERATE_DICTIONARY(libInitOrder
                              InitOrder.h
                              LINKDEF InitOrderLinkDef.h
-                             NO_ROOTMAP NO_CXXMODULE)
+                             NO_ROOTMAP NO_CXXMODULE
+                             FIXTURES_SETUP InitOrder)
 
 ROOTTEST_ADD_TEST(execInitOrder
                   MACRO execInitOrder.cxx+
                   COPY_TO_BUILDDIR InitOrder.h
                   OUTREF execInitOrder.ref
-                  DEPENDS libInitOrder-build libInitOrderDups-build)
+                  FIXTURES_REQUIRED InitOrder)
 
-ROOTTEST_ADD_TEST(tclassStl
-                  MACRO tclassStl.cxx+
-		  OUTREF tclassStl.ref
-		  RUN_SERIAL)
+if(NOT coverage)
+  ROOTTEST_ADD_TEST(tclassStl
+                    MACRO tclassStl.cxx+
+                    OUTREF tclassStl.ref
+                    RUN_SERIAL)
+endif()
 
 ROOTTEST_ADD_TEST(TClassAtTearDown
                   MACRO execTClassAtTearDown.C

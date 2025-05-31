@@ -4341,7 +4341,7 @@ Long64_t TTree::Draw(const char* varexp, const TCut& selection, Option_t* option
 /// ### Making a 5D plot using GL
 ///
 /// If option GL5D is specified together with 5 variables, a 5D plot is drawn
-/// using OpenGL. See $ROOTSYS/tutorials/io/tree/tree502_staff.C as example.
+/// using OpenGL. See tree502_staff.C as example.
 ///
 /// ### Making a parallel coordinates plot
 ///
@@ -5324,6 +5324,9 @@ TBranch* TTree::GetBranch(const char* name)
    if (result)
       return result;
 
+   if (auto it = fNamesToBranches.find(name); it != fNamesToBranches.end())
+      return it->second;
+
    // Search using branches, breadth first.
    result = R__GetBranch(fBranches, name);
    if (result)
@@ -5522,8 +5525,10 @@ Long64_t TTree::GetEntries(const char *selection)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Return pointer to the 1st Leaf named name in any Branch of this Tree or
-/// any branch in the list of friend trees.
+/// Returns a number corresponding to:
+/// - The number of entries in this tree, if greater than zero
+/// - The number of entries in the first friend tree, if there are any friends
+/// - 0 otherwise
 
 Long64_t TTree::GetEntriesFriend() const
 {
@@ -9625,7 +9630,7 @@ Int_t TTree::StopCacheLearningPhase()
 ////////////////////////////////////////////////////////////////////////////////
 /// Set the fTree member for all branches and sub branches.
 
-static void TBranch__SetTree(TTree *tree, TObjArray &branches)
+void ROOT::Internal::TreeUtils::TBranch__SetTree(TTree *tree, TObjArray &branches)
 {
    Int_t nb = branches.GetEntriesFast();
    for (Int_t i = 0; i < nb; ++i) {
@@ -9640,7 +9645,9 @@ static void TBranch__SetTree(TTree *tree, TObjArray &branches)
          }
       }
 
-      TBranch__SetTree(tree,*br->GetListOfBranches());
+      tree->RegisterBranchFullName({std::string{br->GetFullName()}, br});
+
+      ROOT::Internal::TreeUtils::TBranch__SetTree(tree, *br->GetListOfBranches());
    }
 }
 
@@ -9682,7 +9689,7 @@ void TTree::Streamer(TBuffer& b)
          fBranches.SetOwner(true); // True needed only for R__v < 19 and most R__v == 19
 
          if (fBranchRef) fBranchRef->SetTree(this);
-         TBranch__SetTree(this,fBranches);
+         ROOT::Internal::TreeUtils::TBranch__SetTree(this, fBranches);
          TFriendElement__SetTree(this,fFriends);
 
          if (fTreeIndex) {
@@ -9730,7 +9737,7 @@ void TTree::Streamer(TBuffer& b)
       if (fEstimate <= 10000) fEstimate = 1000000;
       fBranches.Streamer(b);
       if (fBranchRef) fBranchRef->SetTree(this);
-      TBranch__SetTree(this,fBranches);
+      ROOT::Internal::TreeUtils::TBranch__SetTree(this, fBranches);
       fLeaves.Streamer(b);
       fSavedBytes = fTotBytes;
       if (R__v > 1) fIndexValues.Streamer(b);
