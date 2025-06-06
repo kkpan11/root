@@ -127,6 +127,9 @@ if(NOT davix)
     list(APPEND dataframe_veto analysis/dataframe/df028_SQliteIPLocation.C)
     list(APPEND dataframe_veto analysis/dataframe/df029_SQlitePlatformDistribution.C)
     list(APPEND dataframe_veto analysis/dataframe/df030_SQliteVersionsOfROOT.C)
+    set(davix_veto
+        legacy/hist040_TH2Poly_europe.C hist/hist039_TH2Poly_usa.*
+        legacy/multicore/mp104_processH1.C analysis/parallel/mp_processSelector.C)
 endif()
 
 if(MACOSX_VERSION VERSION_EQUAL 10.13)
@@ -134,7 +137,7 @@ if(MACOSX_VERSION VERSION_EQUAL 10.13)
 endif()
 
 if(NOT geom)
-  set(geom_veto visualisation/geom/*.C geom/*.C visualisation/geom/gdml/*.C)
+  set(geom_veto visualisation/geom/*.C geom/*.C visualisation/geom/gdml/*.C legacy/g3d/shapes.* legacy/g3d/na49view.*)
 endif()
 
 if(NOT ROOT_proof_FOUND)
@@ -503,6 +506,7 @@ set(all_veto hsimple.C
              ${dataframe_veto}
              ${macm1_veto}
              ${clad_veto}
+             ${davix_veto}
              ${proof_veto}
              )
 
@@ -923,7 +927,9 @@ if(ROOT_pyroot_FOUND)
       visualisation/graphs/gr013_polar2.py
       visualisation/graphs/gr014_polar3.py
   )
-  file(GLOB requires_numba   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} analysis/dataframe/df038_NumbaDeclare.py)
+  file(GLOB requires_numba   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+      analysis/dataframe/df038_NumbaDeclare.py
+      analysis/dataframe/df101_h1Analysis.py)
   file(GLOB requires_pandas  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
       analysis/dataframe/df026_AsNumpyArrays.py
       analysis/dataframe/df035_RDFFromPandas.py
@@ -931,7 +937,8 @@ if(ROOT_pyroot_FOUND)
   file(GLOB requires_keras   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} machine_learning/keras/*.py)
   file(GLOB requires_torch   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} machine_learning/pytorch/*.py)
   file(GLOB requires_xgboost RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} machine_learning/tmva10*.py)
-  set(fixtureLists requires_numpy requires_numba requires_pandas requires_keras requires_xgboost requires_torch)
+  file(GLOB requires_sklearn RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} roofit/roofit/rf617*.py)
+  set(fixtureLists requires_numpy requires_numba requires_pandas requires_keras requires_xgboost requires_torch requires_sklearn)
 
   # Now set up all the tests
   foreach(t ${pytutorials})

@@ -4678,7 +4678,7 @@ template Long64_t TStreamerInfo::GetTypedValueSTL(TVirtualCollectionProxy *cont,
 template LongDouble_t TStreamerInfo::GetTypedValueSTL(TVirtualCollectionProxy *cont, Int_t i, Int_t j, int k, Int_t eoffset) const;
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Return value of element i in object number j in a TClonesArray and eventually
+/// Return value of element i in object number j in an STL container and eventually
 /// element k in a sub-array.
 
 template <typename T>
@@ -4697,7 +4697,7 @@ template Long64_t TStreamerInfo::GetTypedValueSTLP(TVirtualCollectionProxy *cont
 template LongDouble_t TStreamerInfo::GetTypedValueSTLP(TVirtualCollectionProxy *cont, Int_t i, Int_t j, int k, Int_t eoffset) const;
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Return value of element i in object number j in a TClonesArray and eventually
+/// Return value of element i in object number j in a pointer to STL container and eventually
 /// element k in a sub-array.
 
 template <typename T>
@@ -5439,7 +5439,7 @@ void TStreamerInfo::PrintValueClones(const char *name, TClonesArray *clones, Int
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Print value of element i in a TClonesArray.
+/// Print value of element i in an STL container.
 
 void TStreamerInfo::PrintValueSTL(const char *name, TVirtualCollectionProxy *cont, Int_t i, Int_t eoffset, Int_t lenmax) const
 {
