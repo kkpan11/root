@@ -163,7 +163,7 @@ function readStyleFromURL(url) {
          gStyle[field] = 0;
       else
          gStyle[field] = parseInt(val);
-      return gStyle[field] !== 0;
+      return gStyle[field];
    }
    function get_float_style(name, field) {
       if (!d.has(name)) return;
@@ -183,6 +183,8 @@ function readStyleFromURL(url) {
       settings.ToolBarVert = true;
    get_float_style('datex', 'fDateX');
    get_float_style('datey', 'fDateY');
+   get_float_style('barwidth', 'fBarWidth');
+   get_float_style('baroffset', 'fBarOffset');
 
    get_int_style('opttitle', 'fOptTitle', 1);
    if (d.has('utc'))
