@@ -45,6 +45,7 @@ ROOT_ADD_GTEST(dataframe_helpers dataframe_helpers.cxx LIBRARIES ROOTDataFrame)
 if(MSVC)
   set_source_files_properties(dataframe_helpers.cxx PROPERTIES COMPILE_FLAGS /bigobj)
   set_source_files_properties(dataframe_cache.cxx PROPERTIES COMPILE_FLAGS /bigobj)
+  set_source_files_properties(dataframe_simple.cxx PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 if(NOT (MSVC OR (APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES arm64)) OR win_broken_tests OR M1_BROKEN_TESTS)
@@ -77,6 +78,7 @@ ROOT_ADD_GTEST(dataframe_vary dataframe_vary.cxx LIBRARIES ROOTDataFrame)
 ROOT_ADD_GTEST(dataframe_compgraph dataframe_compgraph.cxx LIBRARIES ROOTDataFrame)
 if(MSVC)
   set_source_files_properties(dataframe_vary.cxx COMPILE_FLAGS /bigobj)
+  set_source_files_properties(dataframe_snapshot.cxx PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 #### TESTS FOR DIFFERENT DATASOURCES ####
@@ -100,6 +102,14 @@ configure_file(spec.json . COPYONLY)
 configure_file(pyspec.json . COPYONLY)
 configure_file(spec_ordering_samples_withFriends.json . COPYONLY)
 ROOT_ADD_GTEST(datasource_csv datasource_csv.cxx LIBRARIES ROOTDataFrame)
+
+ROOT_ADD_GTEST(datasource_tree datasource_tree.cxx LIBRARIES RIO Tree ROOTDataFrame)
+ROOT_GENERATE_DICTIONARY(ClassWithNestedSameNameDict
+                         ${CMAKE_CURRENT_SOURCE_DIR}/ClassWithNestedSameName.hxx
+                         MODULE datasource_tree
+                         LINKDEF ClassWithNestedSameNameLinkDef.hxx
+                         OPTIONS -inlineInputHeader
+                         DEPENDENCIES RIO)
 
 #### TESTS REQUIRING EXTRA ROOT FEATURES ####
 if (imt)

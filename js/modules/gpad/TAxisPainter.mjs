@@ -164,6 +164,17 @@ const AxisPainterMethods = {
       return null;
    },
 
+   /** @summary Detect if tick is extra-ticks */
+   isExtraLogTick(val) {
+      if (!this.log)
+         return false;
+      let vlog = Math.log10(val);
+      if (this.logbase !== 10)
+         vlog /= Math.log10(this.logbase);
+
+      return Math.abs(vlog - Math.round(vlog)) >= 0.001;
+   },
+
    /** @summary Provide label for normal axis */
    formatNormal(d, asticks, fmt) {
       let val = parseFloat(d);
@@ -258,7 +269,8 @@ const AxisPainterMethods = {
             const pow = Math.log10(val) / Math.log10(this.logbase);
             if (Math.abs(Math.round(pow) - pow) < 0.01) arr2.push(val);
          });
-         if (arr2.length > 0) arr = arr2;
+         if (arr2.length)
+            arr = arr2;
       }
 
       return arr;
@@ -269,7 +281,8 @@ const AxisPainterMethods = {
       if (!this.noticksopt) {
          const total = ndiv * (ndiv2 || 1);
 
-         if (this.log) return this.poduceLogTicks(this.func, total);
+         if (this.log)
+            return this.poduceLogTicks(this.func, total);
 
          const dom = this.func.domain(),
             check = ticks => {
@@ -348,7 +361,7 @@ const AxisPainterMethods = {
             else if (item.max + delta_shift > gmax)
                delta_shift = gmax - item.max;
 
-            if (delta_shift !== 0) {
+            if (delta_shift) {
                item.min += delta_shift;
                item.max += delta_shift;
              } else {
@@ -581,7 +594,7 @@ class TAxisPainter extends ObjectPainter {
 
          if (axis?.fNbins && axis?.fLabels) {
             if ((axis.fNbins !== Math.round(axis.fXmax - axis.fXmin)) ||
-                (axis.fXmin !== 0) || (axis.fXmax !== axis.fNbins))
+                axis.fXmin || (axis.fXmax !== axis.fNbins))
                this.regular_labels = false;
          }
 
@@ -676,9 +689,7 @@ class TAxisPainter extends ObjectPainter {
 
       if ((this.nticks2 > 1) && (!this.log || (this.logbase === 10)) && !this.fixed_ticks) {
          handle.minor = handle.middle = this.produceTicks(handle.major.length, this.nticks2);
-
          const gr_range = Math.abs(this.func.range()[1] - this.func.range()[0]);
-
          // avoid black filling by middle-size
          if ((handle.middle.length <= handle.major.length) || (handle.middle.length > gr_range))
             handle.minor = handle.middle = handle.major;
@@ -730,7 +741,7 @@ class TAxisPainter extends ObjectPainter {
       this.ndig = 0;
 
       // at the moment when drawing labels, we can try to find most optimal text representation for them
-      if (((this.kind === kAxisNormal) || (this.kind === kAxisFunc)) && !this.log && (handle.major.length > 0)) {
+      if (((this.kind === kAxisNormal) || (this.kind === kAxisFunc)) && !this.log && handle.major.length) {
          let maxorder = 0, minorder = 0, exclorder3 = false;
 
          if (!optionNoexp && !this.cutLabels()) {
@@ -850,7 +861,7 @@ class TAxisPainter extends ObjectPainter {
          y_0 = new_y = acc_y = title_g.property('shift_y');
 
          sign_0 = vertical ? (acc_x > 0) : (acc_y > 0); // sign should remain
-         can_indx0 = !this.hist_painter?.snapid; // online canvas does not allow alternate position
+         can_indx0 = !this.hist_painter?.getSnapId(); // online canvas does not allow alternate position
 
          alt_pos = vertical ? [axis_length, axis_length/2, 0] : [0, axis_length/2, axis_length]; // possible positions
          const off = vertical ? -title_length/2 : title_length/2;
@@ -968,7 +979,7 @@ class TAxisPainter extends ObjectPainter {
    /** @summary Submit exec for the axis - if possible
      * @private */
    submitAxisExec(exec, only_gaxis) {
-      const snapid = this.hist_painter?.snapid;
+      const snapid = this.hist_painter?.getSnapId();
       if (snapid && this.hist_axis && !only_gaxis)
          this.submitCanvExec(exec, `${snapid}#${this.hist_axis}`);
       else if (this.is_gaxis)
@@ -989,7 +1000,8 @@ class TAxisPainter extends ObjectPainter {
          if (handle.kind === 1) {
             // if not showing labels, not show large tick
             // FIXME: for labels last tick is smaller,
-            if (/* (this.kind === kAxisLabels) || */ (this.format(handle.tick, true) !== null)) h1 = tickSize;
+            if (!this.isExtraLogTick(handle.tick) && (this.format(handle.tick, true) !== null))
+               h1 = tickSize;
             this.ticks.push(handle.grpos); // keep graphical positions of major ticks
          }
 
@@ -1122,7 +1134,14 @@ class TAxisPainter extends ObjectPainter {
                const arg = { text, color: labelsFont.color, latex: 1, draw_g: label_g[lcnt], normal_side: (lcnt === 0) };
                let pos = Math.round(this.func(lbl_pos[nmajor]));
 
-               if (mod?.fTextColor > 0) arg.color = this.getColor(mod.fTextColor);
+               // exclude labels for extra log ticks
+               if (lastpos && this.vertical && (Math.abs(pos - lastpos) < labelsFont.size * 1.1) && this.isExtraLogTick(lbl_pos[nmajor])) {
+                  lastpos = pos;
+                  continue;
+               }
+
+               if (mod?.fTextColor > 0)
+                  arg.color = this.getColor(mod.fTextColor);
 
                arg.gap_before = (nmajor > 0) ? Math.abs(Math.round(pos - this.func(lbl_pos[nmajor - 1]))) : 0;
 
@@ -1342,7 +1361,7 @@ class TAxisPainter extends ObjectPainter {
       this.extractDrawAttributes(undefined, w, h);
 
       if (this.is_gaxis)
-         draw_lines = axis.fLineColor !== 0;
+         draw_lines = Boolean(axis.fLineColor);
 
       if (!this.is_gaxis || (this.name === 'zaxis')) {
          axis_g = layer.selectChild(`.${this.name}_container`);
@@ -1411,10 +1430,11 @@ class TAxisPainter extends ObjectPainter {
          this.position = 0;
 
          if (calculate_position) {
-            const node1 = axis_g.node(), node2 = this.getPadSvg().node();
+            const node1 = axis_g.node(),
+                  node2 = this.getPadPainter()?.getPadSvg().node();
             if (isFunc(node1?.getBoundingClientRect) && isFunc(node2?.getBoundingClientRect)) {
                const rect1 = node1.getBoundingClientRect(),
-                  rect2 = node2.getBoundingClientRect();
+                     rect2 = node2.getBoundingClientRect();
                this.position = rect1.left - rect2.left; // use to control left position of Y scale
             }
             if (node1 && !node2)

@@ -304,7 +304,21 @@ private: \
 public: \
    static TClass *Class() { static TClass* sIsA = 0; if (!sIsA) sIsA = TClass::GetClass(#name); return sIsA; } \
    static const char *Class_Name() { return #name; } \
-   virtual_keyword Bool_t CheckTObjectHashConsistency() const overrd { return true; } \
+   virtual_keyword Bool_t CheckTObjectHashConsistency() const overrd {                         \
+      static std::atomic<UChar_t> recurseBlocker(0);                                           \
+      if (R__likely(recurseBlocker >= 2)) {                                                    \
+         return ::ROOT::Internal::THashConsistencyHolder<decltype(*this)>::fgHashConsistency;  \
+      } else if (recurseBlocker == 1) {                                                        \
+         return false;                                                                         \
+      } else if (recurseBlocker++ == 0) {                                                      \
+         ::ROOT::Internal::THashConsistencyHolder<decltype(*this)>::fgHashConsistency =        \
+            ::ROOT::Internal::HasConsistentHashMember(_QUOTE_(name)) ||                        \
+            ::ROOT::Internal::HasConsistentHashMember(*IsA());                                 \
+         ++recurseBlocker;                                                                     \
+         return ::ROOT::Internal::THashConsistencyHolder<decltype(*this)>::fgHashConsistency;  \
+      }                                                                                        \
+      return false; /* unreachable */                                                          \
+   }                                                                                           \
    static Version_t Class_Version() { return id; } \
    static TClass *Dictionary() { return 0; } \
    virtual_keyword TClass *IsA() const overrd { return name::Class(); } \
@@ -1705,6 +1719,7 @@ void TCling::RegisterRdictForLoadPCM(const std::string &pcmFileNameFullPath, llv
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Tries to load a PCM from TFile; returns true on success.
+/// The caller of this function should be holding the ROOT Write lock.
 
 void TCling::LoadPCMImpl(TFile &pcmFile)
 {
@@ -1820,6 +1835,7 @@ void TCling::LoadPCMImpl(TFile &pcmFile)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Tries to load a rdict PCM, issues diagnostics if it fails.
+/// The caller of this function should be holding the ROOT Write lock.
 
 void TCling::LoadPCM(std::string pcmFileNameFullPath)
 {
@@ -2019,6 +2035,7 @@ void TCling::ProcessClassesToUpdate()
 /// libraries.
 /// The payload code is injected "as is" in the interpreter.
 /// The value of 'triggerFunc' is used to find the shared library location.
+/// The caller of this function should be holding the ROOT Write lock.
 
 void TCling::RegisterModule(const char* modulename,
                             const char** headers,
@@ -7712,6 +7729,8 @@ void TCling::CodeComplete(const std::string& line, size_t& cursor,
 /// Get the interpreter value corresponding to the statement.
 int TCling::Evaluate(const char* code, TInterpreterValue& value)
 {
+   R__LOCKGUARD_CLING(gInterpreterMutex);
+
    auto V = reinterpret_cast<cling::Value*>(value.GetValAddr());
    auto compRes = fInterpreter->evaluate(code, *V);
    return compRes!=cling::Interpreter::kSuccess ? 0 : 1 ;
