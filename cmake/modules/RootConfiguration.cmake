@@ -156,30 +156,10 @@ set(gl2pslibdir ${GL2PS_LIBRARY_DIR})
 set(gl2pslib ${GL2PS_LIBRARY})
 set(gl2psincdir ${GL2PS_INCLUDE_DIR})
 
-set(buildmysql ${value${mysql}})
-set(mysqllibdir ${MYSQL_LIBRARY_DIR})
-set(mysqllib ${MYSQL_LIBRARY})
-set(mysqlincdir ${MYSQL_INCLUDE_DIR})
-
-set(buildoracle ${value${oracle}})
-set(oraclelibdir ${ORACLE_LIBRARY_DIR})
-set(oraclelib ${ORACLE_LIBRARY})
-set(oracleincdir ${ORACLE_INCLUDE_DIR})
-
-set(buildpgsql ${value${pgsql}})
-set(pgsqllibdir ${PGSQL_LIBRARY_DIR})
-set(pgsqllib ${PGSQL_LIBRARY})
-set(pgsqlincdir ${PGSQL_INCLUDE_DIR})
-
 set(buildsqlite ${value${sqlite}})
 set(sqlitelibdir ${SQLITE_LIBRARY_DIR})
 set(sqlitelib ${SQLITE_LIBRARY})
 set(sqliteincdir ${SQLITE_INCLUDE_DIR})
-
-set(buildodbc ${value${odbc}})
-set(odbclibdir ${OCDB_LIBRARY_DIR})
-set(odbclib ${OCDB_LIBRARY})
-set(odbcincdir ${OCDB_INCLUDE_DIR})
 
 set(builddavix ${value${davix}})
 set(davixlibdir ${DAVIX_LIBRARY_DIR})
@@ -496,6 +476,12 @@ if (uring)
 else()
   set(hasuring undef)
 endif()
+if (geom)
+  set(hasgeom define)
+else()
+  set(hasgeom undef)
+endif()
+
 
 CHECK_CXX_SOURCE_COMPILES("
 inline __attribute__((always_inline)) bool TestBit(unsigned long f) { return f != 0; };

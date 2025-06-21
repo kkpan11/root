@@ -59,6 +59,12 @@ namespace ROOT {
 namespace Internal {
 namespace RDF {
 
+unsigned int &NThreadPerTH3()
+{
+   static unsigned int nThread = 1;
+   return nThread;
+}
+
 /// Return the type_info associated to a name. If the association fails, an
 /// exception is thrown.
 /// References and pointers are not supported since those cannot be stored in
@@ -593,4 +599,9 @@ ROOT::Internal::RDF::CreateColumnReader(ROOT::RDF::RDataSource &ds, unsigned int
                                         const std::type_info &tid, TTreeReader *treeReader)
 {
    return ds.CreateColumnReader(slot, col, tid, treeReader);
+}
+
+std::vector<ROOT::RDF::Experimental::RSample> ROOT::Internal::RDF::MoveOutSamples(ROOT::RDF::Experimental::RDatasetSpec &spec)
+{
+   return std::move(spec.fSamples);
 }
